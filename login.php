@@ -11,12 +11,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html><body>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login</title>
+<style>
+body { font-family: Arial, sans-serif; max-width: 380px; margin: 40px auto; }
+input { display: block; width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
+button { padding: 10px 16px; }
+</style>
+</head>
+<body>
 <h2>Login</h2>
 <p><?= htmlspecialchars($msg) ?></p>
 <form method="post">
-<input name="username" placeholder="Username" required>
-<input name="password" type="password" placeholder="Password" required>
+<input name="username" placeholder="Username" required maxlength="20" pattern="[A-Za-z0-9_]{3,20}" title="3-20 letters, numbers or underscores">
+<input name="password" type="password" placeholder="Password" required minlength="8" maxlength="72">
 <button type="submit">Login</button>
 </form>
-</body></html>
+</body>
+</html>
