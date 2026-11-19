@@ -1,4 +1,5 @@
 <?php
+session_start();
 require __DIR__ . '/config.php';
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -7,7 +8,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param('s', $u);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
-    $msg = ($row && password_verify($_POST['password'] ?? '', $row['password'])) ? 'Login successful.' : 'Invalid credentials.';
+    if ($row && password_verify($_POST['password'] ?? '', $row['password'])) {
+        $_SESSION['username'] = $u;
+        header('Location: dashboard.php');
+        exit;
+    } else {
+        $msg = 'Invalid credentials.';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -26,8 +33,8 @@ button { padding: 10px 16px; }
 <h2>Login</h2>
 <p><?= htmlspecialchars($msg) ?></p>
 <form method="post">
-<input name="username" placeholder="Username" required maxlength="20" pattern="[A-Za-z0-9_]{3,20}" title="3-20 letters, numbers or underscores">
-<input name="password" type="password" placeholder="Password" required minlength="8" maxlength="72">
+<input name="username" placeholder="Username" required maxlength="20" pattern="[A-Za-z0-9_]{3,20}">
+<input name="password" type="password" placeholder="Password" required minlength="8">
 <button type="submit">Login</button>
 </form>
 </body>
