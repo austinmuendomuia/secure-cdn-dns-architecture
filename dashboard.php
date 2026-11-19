@@ -145,7 +145,6 @@ if ($isAdmin) {
 
     <?php if ($justSaved): ?>
     <div id="savedToast" class="saved-toast">
-        <img src="assets/saved.jpg" alt="Note encrypted">
         <div>
             <strong>Note Encrypted &amp; Stored</strong>
             <div class="meta" style="color:#86efac;">Saved to MariaDB using AES-256-GCM encryption at rest.</div>
