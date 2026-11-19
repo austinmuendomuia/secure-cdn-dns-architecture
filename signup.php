@@ -1,21 +1,27 @@
 <?php
 require __DIR__ . '/config.php';
 $msg = '';
+$ok = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    if (!preg_match('/^[A-Za-z0-9_]{3,20}$/', $username)) {
+    $u = trim($_POST['username'] ?? '');
+    $e = trim($_POST['email'] ?? '');
+    $p = $_POST['password'] ?? '';
+    if (!preg_match('/^[A-Za-z0-9_]{3,20}$/', $u)) {
         $msg = 'Username must be 3-20 letters, numbers or underscores.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 100) {
+    } elseif (!filter_var($e, FILTER_VALIDATE_EMAIL)) {
         $msg = 'Invalid email address.';
-    } elseif (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,72}$/', $password)) {
-        $msg = 'Password needs 8+ characters with a letter, a number and a special character.';
+    } elseif (strlen($p) < 8) {
+        $msg = 'Password must be at least 8 characters.';
     } else {
-        $hash = password_hash($password, PASSWORD_ARGON2ID);
-        $stmt = $conn->prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)');
-        $stmt->bind_param('sss', $username, $email, $hash);
-        $msg = $stmt->execute() ? 'Registration successful.' : 'Username or email already exists.';
+        $hash = password_hash($p, PASSWORD_ARGON2ID);
+        $stmt = $conn->prepare('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, "staff")');
+        $stmt->bind_param('sss', $u, $e, $hash);
+        if ($stmt->execute()) {
+            $ok = true;
+            $msg = 'Account created. You can now sign in.';
+        } else {
+            $msg = 'Username or email already exists.';
+        }
     }
 }
 ?>
@@ -24,45 +30,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign up</title>
-<style>
-body { font-family: Arial, sans-serif; max-width: 380px; margin: 40px auto; }
-input { display: block; width: 100%; padding: 8px; margin: 8px 0; box-sizing: border-box; }
-button { padding: 10px 16px; }
-#bar-wrap { background: #ddd; height: 10px; border-radius: 5px; }
-#bar { height: 10px; width: 0; border-radius: 5px; transition: width .2s, background .2s; }
-#label { font-size: 14px; margin: 4px 0 12px; }
-</style>
+<title>Register — StaffOnly</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h2>Sign up</h2>
-<p><?= htmlspecialchars($msg) ?></p>
-<form method="post">
-<input name="username" placeholder="Username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" title="3-20 letters, numbers or underscores">
-<input name="email" type="email" placeholder="Email" required maxlength="100">
-<input id="password" name="password" type="password" placeholder="Password" required minlength="8" maxlength="72" pattern="(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,72}" title="8+ characters with a letter, a number and a special character">
-<div id="bar-wrap"><div id="bar"></div></div>
-<p id="label">Enter a password</p>
-<button type="submit">Register</button>
-</form>
+<div class="auth-box">
+    <h2>Create Staff Account</h2>
+    <?php if ($msg): ?><div class="msg <?= $ok ? 'ok' : 'err' ?>"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
+    <form method="post">
+        <label>Username</label>
+        <input name="username" required maxlength="20" pattern="[A-Za-z0-9_]{3,20}">
+        <label>Email</label>
+        <input name="email" type="email" required>
+        <label>Password</label>
+        <input id="pw" name="password" type="password" required minlength="8">
+        <div class="meter-bar"><div id="fill" class="meter-fill"></div></div>
+        <div id="label" class="meta" style="margin-bottom:14px;">Enter a password</div>
+        <button type="submit" style="width:100%">Register</button>
+    </form>
+    <p class="meta" style="margin-top:16px;text-align:center;">
+        Already registered? <a href="login.php">Sign In</a>
+    </p>
+</div>
 <script>
-const pw = document.getElementById('password');
-const bar = document.getElementById('bar');
-const label = document.getElementById('label');
-const colors = ['#cccccc', '#d9534f', '#e67e22', '#f1c40f', '#9acd32', '#2ecc71'];
-const names = ['Enter a password', 'Very weak', 'Weak', 'Fair', 'Strong', 'Very strong'];
+const pw = document.getElementById('pw'), fill = document.getElementById('fill'), lbl = document.getElementById('label');
 pw.addEventListener('input', () => {
-  const v = pw.value;
-  let s = 0;
-  if (v.length >= 8) s++;
-  if (v.length >= 12) s++;
-  if (/\d/.test(v)) s++;
-  if (/[^A-Za-z0-9]/.test(v)) s++;
-  if (/[a-z]/.test(v) && /[A-Z]/.test(v)) s++;
-  if (v.length === 0) s = 0;
-  bar.style.width = (s * 20) + '%';
-  bar.style.background = colors[s];
-  label.textContent = names[s];
+    const v = pw.value;
+    let s = 0;
+    if (v.length >= 8) s++;
+    if (v.length >= 12) s++;
+    if (/[A-Z]/.test(v) && /[a-z]/.test(v)) s++;
+    if (/[0-9]/.test(v)) s++;
+    if (/[^A-Za-z0-9]/.test(v)) s++;
+    const map = [['0%','#334155','Enter a password'],['25%','#ef4444','Weak'],['50%','#f59e0b','Fair'],['75%','#3b82f6','Strong'],['100%','#22c55e','Very strong']];
+    const [w,c,t] = map[Math.min(s, 4)];
+    fill.style.width = v ? w : '0%'; fill.style.background = c; lbl.textContent = v ? t : 'Enter a password';
 });
 </script>
 </body>
